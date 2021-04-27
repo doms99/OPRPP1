@@ -1,12 +1,15 @@
 package hr.fer.oprpp1.custom.collections;
 
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
+
 /**
  * Klasa koja nasljeđuje Collection.
  * Implementira povezanu listu u kojem čuva poslane objekte.
  * Lista se sastoji od čvorova u kojoj se nalazi vrijednost i pokazivači.
  * @author Dominik
  */
-public class LinkedListIndexedCollection extends Collection {
+public class LinkedListIndexedCollection implements List {
 
     /**
      * Služi nam za brojanje koliko je trenutno pohranjeno objekata u kolekciji.
@@ -22,6 +25,11 @@ public class LinkedListIndexedCollection extends Collection {
      * Pokazivač na posljednji čvor u listi.
      */
     private Node last;
+
+    /**
+     * Broji koliko puta se polje promijenilo
+     */
+    private long modificationCount;
 
     /**
      * Privatna klasa koja nam služi za povezivanje i nizanje elemenata u listu.
@@ -66,6 +74,7 @@ public class LinkedListIndexedCollection extends Collection {
     public LinkedListIndexedCollection() {
         this.size = 0;
         this.first = this.last = null;
+        this.modificationCount = 0;
     }
 
     /**
@@ -74,26 +83,22 @@ public class LinkedListIndexedCollection extends Collection {
      * @throws NullPointerException ako je poslano <code>null</code> umjesto <code>Collection</code>
      */
     public LinkedListIndexedCollection(Collection other) {
-        if(other.size() == 0) {
-            this.size = 0;
-            this.first = this.last = null;
-            return;
-        }
+        this();
 
-        this.size = other.size();
-        Node[] arrayOfNodes = new Node[this.size];
-        Object[] otherElements = other.toArray();
-        for(int i = 0; i < this.size; i++) {
-            arrayOfNodes[i] = new Node(otherElements[i], null, null);
+        if(other.size() > 1) {
+            Node[] arrayOfNodes = new Node[other.size()];
+            for(Object o : other.toArray()) {
+                arrayOfNodes[size++] = new Node(o, null, null);
+            }
+            for(int i = 1; i < this.size-1; i++) {
+                arrayOfNodes[i].prev = arrayOfNodes[i-1];
+                arrayOfNodes[i].next = arrayOfNodes[i+1];
+            }
+            arrayOfNodes[0].next = arrayOfNodes[1];
+            arrayOfNodes[this.size-1].prev = arrayOfNodes[this.size-2];
+            first = arrayOfNodes[0];
+            last = arrayOfNodes[this.size-1];
         }
-        for(int i = 1; i < this.size-1; i++) {
-            arrayOfNodes[i].prev = arrayOfNodes[i-1];
-            arrayOfNodes[i].next = arrayOfNodes[i+1];
-        }
-        arrayOfNodes[0].next = arrayOfNodes[1];
-        arrayOfNodes[this.size-1].prev = arrayOfNodes[this.size-2];
-        first = arrayOfNodes[0];
-        last = arrayOfNodes[this.size-1];
     }
 
     /**
@@ -167,6 +172,7 @@ public class LinkedListIndexedCollection extends Collection {
             last = newNode;
         }
         this.size++;
+        this.modificationCount++;
     }
 
     /**
@@ -212,6 +218,7 @@ public class LinkedListIndexedCollection extends Collection {
         }
 
         this.size++;
+        this.modificationCount++;
         // Average complexity of this function is n/2 + 1 because the method findNode ensures it will go trough
         // max n/2 + 1 element to find the one we are looking for
     }
@@ -281,6 +288,7 @@ public class LinkedListIndexedCollection extends Collection {
             last.next = null;
         }
         this.size--;
+        this.modificationCount++;
     }
 
     /**
@@ -317,25 +325,55 @@ public class LinkedListIndexedCollection extends Collection {
     }
 
     /**
-     * Prolazi svim elementima liste i na svakog od njih primjenjuje metodu Processor-a.
-     * @param processor objekt u kojem se nalazi metoda <code>process</code>
-     * @throws NullPointerException ako je poslan <code>null</code> umjesto <code>Processor</code>
-     */
-    @Override
-    public void forEach(Processor processor) {
-        Node current = first;
-        while(current != null) {
-            processor.process(current.value);
-            current = current.next;
-        }
-    }
-
-    /**
      * Briše sve elemente liste.
      */
     @Override
     public void clear() {
         this.size = 0;
         first = last = null;
+        this.modificationCount++;
+    }
+
+    /**
+     * Privatni razred koji implementira sučelje <code>ElementsGetter</code>.
+     * Služi za iteriranje po listi i dohvaćanje elemenata.
+     */
+    private static class ListElementsGetter implements ElementsGetter {
+        private Node current;
+        private long savedModificationCount;
+        private LinkedListIndexedCollection collection;
+
+        ListElementsGetter(LinkedListIndexedCollection collection) {
+            current = collection.first;
+            this.collection = collection;
+            this.savedModificationCount = collection.modificationCount;
+        }
+
+        private void checkModifications() {
+            if(savedModificationCount != collection.modificationCount)
+                throw new ConcurrentModificationException("Can't modify and iterate over the collection at the same time!");
+        }
+
+        @Override
+        public boolean hasNextElement() {
+            checkModifications();
+            return !(current == null);
+        }
+
+        @Override
+        public Object getNextElement() {
+            checkModifications();
+            if(!this.hasNextElement())
+                throw new NoSuchElementException("There are no elements left in collection");
+            Object result = current.value;
+            current = current.next;
+
+            return result;
+        }
+    }
+
+    @Override
+    public ElementsGetter createElementsGetter() {
+        return new ListElementsGetter(this);
     }
 }

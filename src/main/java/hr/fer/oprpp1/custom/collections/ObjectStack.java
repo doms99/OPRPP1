@@ -48,6 +48,7 @@ public class ObjectStack {
     /**
      * Skida zadnji dodani objekt i briše ga sa stoga.
      * @return zadnji dodani element na stoga
+     * @throws EmptyStackException ako se metoda pozove nad prazno kolekcijom
      */
     public Object pop() {
         if(size() == 0)
@@ -61,6 +62,7 @@ public class ObjectStack {
     /**
      * Skida zadnji dodani objekt sa stoga, ali ga ne briše
      * @return zadnji dodani objekt na stoga
+     * @throws EmptyStackException ako se metoda pozove nad prazno kolekcijom
      */
     public Object peek() {
         if(size() == 0)

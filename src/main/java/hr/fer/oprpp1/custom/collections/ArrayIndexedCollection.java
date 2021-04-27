@@ -1,13 +1,15 @@
 package hr.fer.oprpp1.custom.collections;
 
 import java.util.Arrays;
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
 
 /**
  * Klasa koja nasljeđuje Collection.
  * Implementira polje u kojem čuva poslane objekte.
  * @author Dominik
  */
-public class ArrayIndexedCollection extends Collection {
+public class ArrayIndexedCollection implements List {
 
     /**
      * Služi nam za brojanje koliko je trenutno pohranjeno objekata u kolekciji.
@@ -20,11 +22,17 @@ public class ArrayIndexedCollection extends Collection {
     private Object[] elements;
 
     /**
+     * Broji koliko puta se polje promijenilo
+     */
+    private long modificationCount;
+
+    /**
      * Default konstruktor.
      * Početna veličina polja postavlja se na 16.
      */
-    public ArrayIndexedCollection() {                                   //jesam
+    public ArrayIndexedCollection() {
         this.size = 0;
+        this.modificationCount = 0;
         elements = new Object[16];
     }
 
@@ -33,29 +41,21 @@ public class ArrayIndexedCollection extends Collection {
      * @param initialCapacity početna veličina polja
      * @throws IllegalArgumentException ako je poslani parametar manji od 1
      */
-    public ArrayIndexedCollection(int initialCapacity) {                //jesam
+    public ArrayIndexedCollection(int initialCapacity) {
         if(initialCapacity < 1)
             throw new IllegalArgumentException("Initial capacity can't be smaller then 1! Was sent "+ initialCapacity);
         this.size = 0;
         elements = new Object[initialCapacity];
+        this.modificationCount = 0;
     }
 
     /**
      * Kontruktor koji prima postojeću kolekciju i kopira elemente.
      * @param other kolkecija koja se kopira
-     * @throws IllegalArgumentException ako je poslana prazna kolekcija
      * @throws NullPointerException ako je poslana null vrjednost umjesto kolekcije
      */
-    public ArrayIndexedCollection(Collection other) {                                       //jesam
-        if(other.size() == 0)
-            throw new IllegalArgumentException("Can't add objects from an empty collection. Size was: "+ other.size());
-        this.size = 0;
-        elements = new Object[other.size()];
-        other.forEach(new Processor() {
-            public void process(Object value) {
-                elements[size++] = value;
-            }
-        });
+    public ArrayIndexedCollection(Collection other) {
+        this(other, 1);
     }
 
     /**
@@ -65,7 +65,7 @@ public class ArrayIndexedCollection extends Collection {
      * @param initialCapacity željena početna vrijednost polja
      * @throws NullPointerException ako je poslana null vrjednost umjesto kolekcije
      */
-    public ArrayIndexedCollection(Collection other, int initialCapacity) {               //jesam
+    public ArrayIndexedCollection(Collection other, int initialCapacity) {
         this(other.size() > initialCapacity ? other.size() : initialCapacity);
         other.forEach(new Processor() {
             public void process(Object value) {
@@ -111,12 +111,13 @@ public class ArrayIndexedCollection extends Collection {
      * @throws NullPointerException ako se pokuša spremiti null vrijednost
      */
     @Override
-    public void add(Object value) {                            //jesam
+    public void add(Object value) {
         if(value == null)
             throw new NullPointerException();
         if(size == elements.length) doubleArray();
 
         this.elements[size++] = value;
+        this.modificationCount++;
     }
 
     /**
@@ -125,7 +126,7 @@ public class ArrayIndexedCollection extends Collection {
      * @return Objekt na zadanoj poziciji u polju
      * @throws IndexOutOfBoundsException ako se pokušava dohvatiti objekt na poziciji koja nije bila postavljena ili ako je pozicija neispravna
      */
-    public Object get(int index) {                                                       //jesam
+    public Object get(int index) {
         if(index < 0 || index >= this.size)
             throw new IndexOutOfBoundsException("Received "+ index +", should be between 0 and "+ (this.elements.length-1));
         return this.elements[index];
@@ -140,17 +141,18 @@ public class ArrayIndexedCollection extends Collection {
      * @throws NullPointerException ako se pokuša spremiti null vrijednost
      * @throws IndexOutOfBoundsException ako je poslani pozicija umetanja nevažeća
      */
-    public void insert(Object value, int position) {                                //jesam
+    public void insert(Object value, int position) {
         if(value == null)
             throw new NullPointerException();
         if(position < 0 || position > this.size)
             throw new IndexOutOfBoundsException("Received "+ position +", should be between 0 and "+ (this.elements.length-1));
-        if(size == elements.length) doubleArray();
+        if(this.size == this.elements.length) doubleArray();
         for(int i = size - 1; i >= position; i--) {
-            elements[i+1] = elements[i];
+            this.elements[i+1] = this.elements[i];
         }
-        elements[position] = value;
-        size++;
+        this.elements[position] = value;
+        this.size++;
+        this.modificationCount++;
         // This function has linear complexity because it directly depends on the size of the array.
         // On average it well have to move half of the elements in the array
     }
@@ -160,7 +162,7 @@ public class ArrayIndexedCollection extends Collection {
      * @param value objekt koji se traži
      * @return indeks pozicije na kojem se nalazi prvi objekt koji je jednak poslani objektu, inače vraća -1 ako objekt nije pronađen
      */
-    public int indexOf(Object value) {                          //jesam
+    public int indexOf(Object value) {
         if(value == null) return -1;
         int index = -1;
         for(int i = 0; i < size; i++) {
@@ -196,6 +198,7 @@ public class ArrayIndexedCollection extends Collection {
             elements[i] = elements[i+1];
         }
         elements[--size] = null;
+        this.modificationCount++;
     }
 
     /**
@@ -204,7 +207,7 @@ public class ArrayIndexedCollection extends Collection {
      * @return <code>true<code> ako je objekt pronađen i obrisan, inače <code>false</code>
      */
     @Override
-    public boolean remove(Object value) {                                       //jesam
+    public boolean remove(Object value) {
         int index = indexOf(value);
         if(index != -1) {
             remove(index);
@@ -223,23 +226,76 @@ public class ArrayIndexedCollection extends Collection {
     }
 
     /**
-     * Prolazi svim elementima polja i na svakog od njih primjenjuje metodu Processor-a.
-     * @param processor objekt u kojem se nalazi metoda <code>process</code>
-     * @throws NullPointerException ako je poslan <code>null</code> umjesto <code>Processor</code>
-     */
-    @Override
-    public void forEach(Processor processor) {
-        for(int i = 0; i < this.size; i++) {
-            processor.process(elements[i]);
-        }
-    }
-
-    /**
      * Briše sve elemente polja.
      */
     @Override
     public void clear() {
         this.size = 0;
         Arrays.fill(this.elements, null);
+        this.modificationCount++;
+    }
+
+    /**
+     * Razred koji implementira sučelje <code>ElementsGetter</code>.
+     * Razred služi za iteriranje nad elementima kolekcije.
+     */
+    private static class ArrayElementsGetter implements ElementsGetter {
+
+        /**
+         * Zadnji element kojim smo prošli.
+         */
+        private int current;
+
+        /**
+         * Kolekcija po kojoj se provodi iteracija.
+         */
+        private ArrayIndexedCollection collection;
+
+        /**
+         * Sprema broj modifikacija nad kolekcijom u trenutku kad je kolekcija stvorena.
+         */
+        private long savedModificationCount;
+
+        /**
+         * Stvara novu instancu razreda koja služi za iteriranjem nad poslanom kolekcijom.
+         * @param collection kolekcija nad kojom se iterira
+         */
+        ArrayElementsGetter(ArrayIndexedCollection collection) {
+            this.current = 0;
+            this.savedModificationCount = collection.modificationCount;
+            this.collection = collection;
+        }
+
+        /**
+         * Provjera da li je kolekcija bila mijenjana za vrijeme iteracijež
+         * @throws ConcurrentModificationException ako je kolekcija mijenjana za vrijeme iteriranja
+         */
+        private void checkModifications() {
+            if(savedModificationCount != collection.modificationCount)
+                throw new ConcurrentModificationException("Can't iterate over and modify the collection at the same time!");
+        }
+
+        @Override
+        public boolean hasNextElement() {
+            checkModifications();
+            return current < collection.size;
+        }
+
+        @Override
+        public Object getNextElement() {
+            checkModifications();
+            if(!this.hasNextElement())
+                throw new NoSuchElementException("There are no elements left in collection");
+            return collection.elements[current++];
+        }
+    }
+
+    /**
+     * Funkcija stvara i vraća novi <code>ElementsGetter</code> nad kolekcijom
+     * @return <code>ElementsGetter</code> nad kolekcijom
+     */
+    @Override
+    public ElementsGetter createElementsGetter() {
+        return new ArrayElementsGetter(this);
     }
 }
