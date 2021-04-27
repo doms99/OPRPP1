@@ -43,10 +43,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>hr.fer.zemris.java.fractals</groupId>
-            <artifactId>fractal-viewer</artifactId>
+            <groupId>hr.fer.oprpp1.fractals</groupId>
+            <artifactId>lsystems</artifactId>
             <version>1.0</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
+
 </project>
