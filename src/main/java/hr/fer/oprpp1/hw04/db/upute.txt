@@ -1,0 +1,4 @@
+qurey - LIKE podržava znak *, ali samo jednu pojavu bilo gdje u nizu
+            - ako se pojavi više puta onda se baca iznimka koja se mora HVATATI!!!!!!
+
+
