@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>hr.fer.oprpp1.jmbag0036515161</groupId>
-    <artifactId>hw06-0036515161</artifactId>
+    <artifactId>hw07-0036515161</artifactId>
     <version>1.0</version>
     <build>
         <plugins>
@@ -26,7 +26,7 @@
     </build>
     <packaging>jar</packaging>
 
-    <name>hw04-0036515161</name>
+    <name>hw07-0036515161</name>
 
     <properties>
         <maven.compiler.source>15</maven.compiler.source>
@@ -48,5 +48,5 @@
             <version>1.0</version>
             <scope>compile</scope>
         </dependency>
-     </dependencies>
+    </dependencies>
 </project>
