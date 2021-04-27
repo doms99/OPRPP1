@@ -1,11 +1,11 @@
 package hr.fer.oprpp1.custom.collections;
 
 /**
- * Klasa koju nasljeđuju sve ostale kolekcije koje ćemo implementirati
+ * Sučelje koje implementiraju sve kolekcije koje ćemo implementirati
  * Upravljanje i rad s skupom objekata
  * @author Dominik
  */
-public interface Collection {
+public interface Collection<T> {
 
     /**
      * @return broj objekata u kolekciji
@@ -24,7 +24,7 @@ public interface Collection {
      * Dodaje poslani objekt u kolekciju.
      * @param value objekt koji se dodaje
      */
-    void add(Object value);
+    <K extends T> void add(K value);
 
     /**
      * Provjerava da li kolekcija sadrži poslani objekt.
@@ -50,8 +50,8 @@ public interface Collection {
      * Nad svakim objektom se poziva metoda <code>.process(.)</code> iz poslanog objekta Processor.
      * @param processor objekt u kojem se nalazi metoda <code>process</code>
      */
-    default void forEach(Processor processor) {
-        ElementsGetter getter = this.createElementsGetter();
+    default void forEach(Processor<? super T> processor) {
+        ElementsGetter<T> getter = this.createElementsGetter();
         while(getter.hasNextElement()) {
             processor.process(getter.getNextElement());
         }
@@ -61,12 +61,8 @@ public interface Collection {
      * Dodaje sve objekte poslane kolekcije u svoju kolekciju.
      * @param other kolekcija koja sadrži elemente koje moramo dodati
      */
-    default void addAll(Collection other) {
-        other.forEach(new Processor() {
-            public void process(Object value) {
-                add(value);
-            }
-        });
+    default void addAll(Collection<? extends T> other) {
+        other.forEach(value -> add(value));
     }
 
     /**
@@ -74,14 +70,21 @@ public interface Collection {
      */
     void clear();
 
-    ElementsGetter createElementsGetter();
+    /**
+     * Funkcija stvara i vraća novi <code>ElementsGetter</code> nad kolekcijom
+     * @return <code>ElementsGetter</code> nad kolekcijom
+     */
+    ElementsGetter<T> createElementsGetter();
 
-    default void addAllSatisfying(Collection col, Tester tester) {
-        col.forEach(new Processor() {
-            @Override
-            public void process(Object value) {
-                if(tester.test(value)) add(value);
-            }
+    /**
+     * Dodaje sve elemente poslane kolekcije u svoje polje.
+     * @param col kolekcija čije elemente želimo kopirati
+     * @param tester <code>Tester</code> koji testira sve elemente prije kopiranja
+     */
+    default void addAll(Collection<? extends T> col, Tester<T> tester) {
+        col.forEach(value -> {
+            if(tester.test(value))
+                add(value);
         });
     }
 }

@@ -1,378 +1,224 @@
 package hr.fer.oprpp1.custom.collections;
 
-import hr.fer.oprpp1.custom.collections.ArrayIndexedCollection;
-import hr.fer.oprpp1.custom.collections.Processor;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Test;
+
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
+
 public class ArrayIndexedCollectionTest {
-
-    /**
-     * Vraća kolekciju napunjenu s <code>item</code> elemenata počinjući od 0
-     * @param items broj elemenata koje treba dodati
-     * @return vraća novostvorenu koleciju
-     */
-    private ArrayIndexedCollection getCollection(int items) {
-            ArrayIndexedCollection result = new ArrayIndexedCollection();
-            for(int i = 0; i < items; i++) {
-                result.add(i);
-            }
-            return result;
-    }
-
-    /*
     @Test
-    public void testArraySizeDefaultConstructor() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        assertEquals(16, collection.arraySize());
+    public void testConstructorWrongCapacity() {
+        assertThrows(IllegalArgumentException.class, () -> new ArrayIndexedCollection<>(- 5));
     }
 
     @Test
-    public void testArraySizeValidInitialCapacityConstructor() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection(5);
-        assertEquals(5, collection.arraySize());
+    public void testConstructorSize16() {
+        assertEquals(16, new ArrayIndexedCollection<>().arraySize());
     }
 
     @Test
-    public void testArraySizeInvalidInitialCapacityConstructor() {
-        assertThrows(IllegalArgumentException.class, () -> new ArrayIndexedCollection(0));
+    public void testConstructorGivenCapacity() {
+        assertEquals(14, new ArrayIndexedCollection<>(14).arraySize());
     }
 
     @Test
-    public void testOtherCollectionConstructor() {
-        ArrayIndexedCollection toBeSentCollection = getCollection(3);
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(toBeSentCollection);
-        assertArrayEquals(new Object[] {0, 1, 2}, resultArray.toArray());
+    public void testConstructor2GivenCapacity() {
+        Collection<Integer> startCollection = new ArrayIndexedCollection<>();
+        startCollection.add(3);
+        startCollection.add(10);
+
+        assertEquals(14, new ArrayIndexedCollection<>(startCollection, 14).arraySize());
     }
 
     @Test
-    public void testNullOtherCollectionConstructor() {
+    public void testDoublingOfSize() {
+        var startCollection = new ArrayIndexedCollection<>(2);
+        startCollection.add(1);
+        startCollection.add(2);
+        startCollection.add(3);
+
+        assertEquals(4, startCollection.arraySize());
+    }
+
+    @Test
+    public void testConstructorGiveArray() {
+        Collection<Integer> startCollection = new ArrayIndexedCollection<>();
+        startCollection.add(3);
+        startCollection.add(10);
+
+        ArrayIndexedCollection<Integer> testCollection = new ArrayIndexedCollection<>(startCollection);
+
+        var expectedArray = new Object[]{3, 10};
+        var gottenArray = testCollection.toArray();
+
+
+        assertArrayEquals(expectedArray, gottenArray);
+    }
+
+    @Test
+    public void testSendNullCollection() {
         assertThrows(NullPointerException.class, () -> new ArrayIndexedCollection(null));
     }
 
     @Test
-    public void testArraySizeOtherCollectionAndSmallerInitialCapacityConstructor() {
-        ArrayIndexedCollection toBeSentCollection = getCollection(3);
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(toBeSentCollection, 2);
-        assertEquals(3, resultArray.arraySize());
+    public void testAddMethod() {
+        var testCollection = new ArrayIndexedCollection<>(2);
+        testCollection.add(5);
+        testCollection.add("Test");
+
+        var expectedArray = new Object[]{5, "Test"};
+
+        assertArrayEquals(expectedArray, testCollection.toArray());
+
     }
 
     @Test
-    public void testArrayElementsOtherCollectionAndSmallerInitialCapacityConstructor() {
-        ArrayIndexedCollection toBeSentCollection = getCollection(3);
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(toBeSentCollection, 2);
-        assertArrayEquals(new Object[] {0, 1, 2}, resultArray.toArray());
+    public void testGetMethod() {
+        String test = "Test";
+        var testCollection = new ArrayIndexedCollection<>();
+        testCollection.add(test);
+
+        assertEquals(test, testCollection.get(0));
     }
 
     @Test
-    public void testArraySizeOtherCollectionAndLargerInitialCapacityConstructor() {
-        ArrayIndexedCollection toBeSentCollection = getCollection(3);
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(toBeSentCollection, 5);
-        assertEquals(5, resultArray.arraySize());
+    public void testClearMethod() {
+        String test = "Test";
+        var testCollection = new ArrayIndexedCollection<>();
+        testCollection.add(test);
+
+        testCollection.clear();
+        assertFalse(testCollection.contains(test));
     }
 
     @Test
-    public void testArrayElementsOtherCollectionAndLargerInitialCapacityConstructor() {
-        ArrayIndexedCollection toBeSentCollection = getCollection(3);
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(toBeSentCollection, 2);
-        assertArrayEquals(new Object[] {0, 1, 2}, resultArray.toArray());
+    public void testInsertMethod() {
+        var first = 1;
+        var second = "Second";
+        var third = 3.0;
+        var fourth = "4";
+
+        var testCollection = new ArrayIndexedCollection<>(5);
+        testCollection.add(first);
+        testCollection.add(second);
+        testCollection.add(third);
+        testCollection.add(fourth);
+
+        var test = "Test";
+
+        testCollection.insert(test, 1);
+        var array = testCollection.toArray();
+
+        var expectedArray = new Object[]{first, test, second, third, fourth};
+
+        assertArrayEquals(expectedArray, array);
+
     }
 
     @Test
-    public void testArraySizeOtherCollectionAndInvalidInitialCapacityConstructor() {
-        ArrayIndexedCollection toBeSentCollection = getCollection(3);
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(toBeSentCollection, 0);
-        assertEquals(3, resultArray.arraySize());
+    public void testIndexOfMethod() {
+        var test = "Test";
+        var testCollection = new ArrayIndexedCollection<>();
+        testCollection.add(1);
+        testCollection.add(2);
+        testCollection.add(test);
+        testCollection.add(3);
+
+        assertEquals(2, testCollection.indexOf(test));
     }
 
     @Test
-    public void testNullOtherCollectionAndInitialCapacityConstructor() {
-        assertThrows(NullPointerException.class, () -> new ArrayIndexedCollection(null, 5));
+    public void testRemoveMethod() {
+        var first = 1;
+        var second = "Second";
+        var third = 3.0;
+        var fourth = "4";
+
+        var testCollection = new ArrayIndexedCollection<>(5);
+        testCollection.add(first);
+        testCollection.add(second);
+        testCollection.add(third);
+        testCollection.add(fourth);
+
+        testCollection.remove(1);
+        var array = testCollection.toArray();
+
+        var expectedArray = new Object[]{first, third, fourth};
+
+        assertArrayEquals(expectedArray, array);
     }
 
     @Test
-    public void testArraySizeEmptyOtherCollectionAndInitialCapacityConstructor() {
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(new ArrayIndexedCollection(), 5);
-        assertEquals(5, resultArray.arraySize());
+    public void testElementsGetter() {
+        Collection<String> col1 = new ArrayIndexedCollection<>();
+        Collection<String> col2 = new ArrayIndexedCollection<>();
+        col1.add("Ivo");
+        col1.add("Ana");
+        col1.add("Jasna");
+        col2.add("Jasmina");
+        col2.add("Štefanija");
+        col2.add("Karmela");
+        ElementsGetter<String> getter1 = col1.createElementsGetter();
+        ElementsGetter<String> getter2 = col1.createElementsGetter();
+        ElementsGetter<String> getter3 = col2.createElementsGetter();
+
+        String result = "";
+        result += getter1.getNextElement() + " ";
+        result += getter1.getNextElement() + " ";
+        result += getter2.getNextElement() + " ";
+        result += getter3.getNextElement() + " ";
+        result += getter3.getNextElement();
+
+        assertEquals("Ivo Ana Ivo Jasmina Štefanija", result);
     }
 
     @Test
-    public void testArrayElementsEmptyOtherCollectionAndLargerInitialCapacityConstructor() {
-        ArrayIndexedCollection resultArray = new ArrayIndexedCollection(new ArrayIndexedCollection(), 5);
-        assertArrayEquals(new Object[] {}, resultArray.toArray());
+    public void testElementsGetterException() {
+        assertThrows(NoSuchElementException.class, () -> {
+            Collection<String> col = new ArrayIndexedCollection<>(); // npr. new ArrayIndexedCollection();
+            col.add("Ivo");
+            col.add("Ana");
+            col.add("Jasna");
+            ElementsGetter<String> getter1 = col.createElementsGetter();
+            String result = "";
+            result += getter1.getNextElement() + " ";
+            result += getter1.getNextElement() + " ";
+            result += getter1.getNextElement() + " ";
+            result += getter1.getNextElement();
+        });
     }
 
     @Test
-    public void testIsEmptyFunctionOnEmptyCollection() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        assertEquals(true, collection.isEmpty());
+    public void hasNextElementsGetterTest() {
+        Collection<String> col = new ArrayIndexedCollection<>(); // npr. new ArrayIndexedCollection();
+        col.add("Ivo");
+        col.add("Ana");
+        col.add("Jasna");
+        ElementsGetter<String> getter = col.createElementsGetter();
+        getter.getNextElement();
+        getter.getNextElement();
+        var result = new boolean[2];
+        result[0] = getter.hasNextElement();
+        getter.getNextElement();
+        result[1] = getter.hasNextElement();
+        assertArrayEquals(new boolean[]{true, false}, result);
     }
 
     @Test
-    public void testIsEmptyFunctionOnNonEmptyCollection() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        collection.add(1);
-        assertEquals(false, collection.isEmpty());
+    public void testElementsGetterThrowsConcurrentModificationException() {
+        assertThrows(ConcurrentModificationException.class, () -> {
+            Collection<String> col = new ArrayIndexedCollection<>();
+            col.add("Ivo");
+            col.add("Ana");
+            col.add("Jasna");
+            ElementsGetter<String> getter = col.createElementsGetter();
+            getter.getNextElement();
+            getter.getNextElement();
+            col.clear();
+            getter.getNextElement();
+        });
     }
 
-    @Test
-    public void testSizeFunctionEmptyCollection() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        assertEquals(0, collection.size());
-    }
-
-    @Test
-    public void testSizeFunctionNonEmptyCollection() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        collection.add(1);
-        collection.add(2);
-        assertEquals(2, collection.size());
-    }
-
-    @Test
-    public void testAddFunctions() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        collection.add(1);
-        collection.add(2);
-        assertEquals(2, collection.size());
-    }
-
-    @Test
-    public void testAddFunctionOnFullArray() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection(2);
-        collection.add(1);
-        collection.add(2);
-        collection.add(3);
-        assertEquals(4, collection.arraySize());
-    }
-
-    @Test
-    public void testAddNullFunction() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection(2);
-        assertThrows(NullPointerException.class, () -> collection.add(null));
-    }
-
-    @Test
-    public void testGetFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(1, collection.get(1));
-    }
-
-    @Test
-    public void testGetFunctionIndexToBig() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.get(4));
-    }
-
-    @Test
-    public void testGetFunctionIndexToSmall() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.get(-1));
-    }
-
-    @Test
-    public void testGetFunctionOnEmptyCollection() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.get(0));
-    }
-
-    @Test
-    public void testInsertFunctionBeginning() {
-        ArrayIndexedCollection collection = getCollection(3);
-        collection.insert(5, 0);
-        assertArrayEquals(new Object[] {5, 0, 1, 2}, collection.toArray());
-    }
-
-    @Test
-    public void testInsertFunctionMiddle() {
-        ArrayIndexedCollection collection = getCollection(3);
-        collection.insert(5, 1);
-        assertArrayEquals(new Object[] {0, 5, 1, 2}, collection.toArray());
-    }
-
-    @Test
-    public void testInsertFunctionEnd() {
-        ArrayIndexedCollection collection = getCollection(3);
-        collection.insert(5, 3);
-        assertArrayEquals(new Object[] {0, 1, 2, 5}, collection.toArray());
-    }
-
-    @Test
-    public void testInsertFunctionToBigIndex() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.insert(5, 5));
-    }
-
-    @Test
-    public void testInsertFunctionToSmallIndex() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.insert(5, -1));
-    }
-
-    @Test
-    public void testInsertNullFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(NullPointerException.class, () -> collection.insert(null, 1));
-    }
-
-    @Test
-    public void testIndexOfExistingFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(1, collection.indexOf(1));
-    }
-
-    @Test
-    public void testIndexOfNonExistingFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(-1, collection.indexOf(5));
-    }
-
-    @Test
-    public void testIndexOfNullFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(-1, collection.indexOf(null));
-    }
-
-    @Test
-    public void testContainsExistingFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(true, collection.contains(1));
-    }
-
-    @Test
-    public void testContainsNonExistingFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(false, collection.contains(5));
-    }
-
-    @Test
-    public void testContainsNullFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(false, collection.contains(null));
-    }
-
-    @Test
-    public void testRemoveUsingIndexFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        collection.remove(1);
-        assertArrayEquals(new Object[] {0, 2}, collection.toArray());
-    }
-
-    @Test
-    public void testRemoveUsingToBigIndexFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.remove(5));
-    }
-
-    @Test
-    public void testRemoveUsingToSmallIndexFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.remove(-1));
-    }
-
-    @Test
-    public void testRemoveUsingToIndexEmptyCollectionFunction() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        assertThrows(IndexOutOfBoundsException.class, () -> collection.remove(0));
-    }
-
-    @Test
-    public void testArrayRemoveUsingObjectFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        collection.remove((Integer) 1);
-        assertArrayEquals(new Object[] {0, 2}, collection.toArray());
-    }
-
-    @Test
-    public void testBooleanRemoveUsingObjectFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(true, collection.remove((Integer) 1));
-    }
-
-    @Test
-    public void testArrayRemoveUsingNonExistingObjectFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        collection.remove((Integer) 5);
-        assertArrayEquals(new Object[] {0, 1, 2}, collection.toArray());
-    }
-
-    @Test
-    public void testBooleanRemoveUsingNonExistingObjectFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(false, collection.remove((Integer) 5));
-    }
-
-    @Test
-    public void testArrayRemoveUsingNullObjectFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        collection.remove(null);
-        assertArrayEquals(new Object[] {0, 1, 2}, collection.toArray());
-    }
-
-    @Test
-    public void testBooleanRemoveUsingNullObjectFunction() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertEquals(false, collection.remove(null));
-    }
-
-    @Test
-    public void testToArrayFunctionEmptyCollection() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        assertEquals(0, collection.toArray().length);
-    }
-
-    @Test
-    public void testToArrayFunctionNonEmptyCollection() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection();
-        collection.add(1);
-        collection.add(2);
-        assertArrayEquals(new Object[] {1, 2}, collection.toArray());
-    }
-
-    @Test
-    public void testForEach() {
-        ArrayIndexedCollection collection = getCollection(3);
-        Integer rand = (int) Math.random();
-
-        class TestProcessor implements Processor {
-            public void process(Object value) {
-                int index = collection.indexOf(value);
-                collection.remove(index);
-                collection.insert(rand, index);
-            }
-        }
-
-        collection.forEach(new TestProcessor());
-        assertArrayEquals(new Object[] {rand, rand, rand}, collection.toArray());
-    }
-
-    @Test
-    public void testForEachNullProcessor() {
-        ArrayIndexedCollection collection = getCollection(3);
-        assertThrows(NullPointerException.class, () -> collection.forEach(null));
-    }
-
-    @Test
-    public void testSizeAfterClear() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection(5);
-        collection.add(0);
-        collection.add(1);
-        collection.add(2);
-        collection.clear();
-        assertEquals(0, collection.size());
-    }
-
-    @Test
-    public void testArraySizeAfterClear() {
-        ArrayIndexedCollection collection = new ArrayIndexedCollection(5);
-        collection.add(0);
-        collection.add(1);
-        collection.add(2);
-        collection.clear();
-        assertEquals(5, collection.arraySize());
-    }
-
-     */
 }

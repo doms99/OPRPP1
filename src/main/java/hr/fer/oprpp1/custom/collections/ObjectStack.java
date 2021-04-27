@@ -5,19 +5,19 @@ package hr.fer.oprpp1.custom.collections;
  * Interno koristi neku kolekciju za spremanje podataka
  * @author Dominik
  */
-public class ObjectStack {
+public class ObjectStack<T> {
 
     /**
      * Kolekcija koja se koristi za spremanje objekata.
      */
-    private ArrayIndexedCollection stack;
+    private ArrayIndexedCollection<T> stack;
 
     /**
      * Default kostruktor.
      * Stvara praznu kolekciju.
      */
     public ObjectStack() {
-        this.stack = new ArrayIndexedCollection();
+        this.stack = new ArrayIndexedCollection<T>();
     }
 
     /**
@@ -39,7 +39,7 @@ public class ObjectStack {
      * Sprema objekt na vrh stoga.
      * @param value vrijednost koja se sprema na vrh stoga
      */
-    public void push(Object value) {
+    public void push(T value) {
         if(value == null)
             throw new NullPointerException("Null can't be pushed to the stack!");
         stack.add(value);
@@ -50,10 +50,10 @@ public class ObjectStack {
      * @return zadnji dodani element na stoga
      * @throws EmptyStackException ako se metoda pozove nad prazno kolekcijom
      */
-    public Object pop() {
+    public T pop() {
         if(size() == 0)
             throw new EmptyStackException("Can't call method pop on an empty stack!");
-        Object result = stack.get(size() - 1);
+        T result = stack.get(size() - 1);
         stack.remove(size() - 1);
 
         return result;
@@ -64,7 +64,7 @@ public class ObjectStack {
      * @return zadnji dodani objekt na stoga
      * @throws EmptyStackException ako se metoda pozove nad prazno kolekcijom
      */
-    public Object peek() {
+    public T peek() {
         if(size() == 0)
             throw new EmptyStackException("Can't call method peek on an empty stack!");
         return stack.get(size() - 1);

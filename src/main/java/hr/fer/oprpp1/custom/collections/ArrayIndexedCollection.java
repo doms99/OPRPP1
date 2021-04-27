@@ -1,5 +1,6 @@
 package hr.fer.oprpp1.custom.collections;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.NoSuchElementException;
@@ -9,7 +10,7 @@ import java.util.NoSuchElementException;
  * Implementira polje u kojem čuva poslane objekte.
  * @author Dominik
  */
-public class ArrayIndexedCollection implements List {
+public class ArrayIndexedCollection<T> implements List<T> {
 
     /**
      * Služi nam za brojanje koliko je trenutno pohranjeno objekata u kolekciji.
@@ -19,7 +20,7 @@ public class ArrayIndexedCollection implements List {
     /**
      * Stvarno polje u kojem čuvamo objekte.
      */
-    private Object[] elements;
+    private T[] elements;
 
     /**
      * Broji koliko puta se polje promijenilo
@@ -31,9 +32,7 @@ public class ArrayIndexedCollection implements List {
      * Početna veličina polja postavlja se na 16.
      */
     public ArrayIndexedCollection() {
-        this.size = 0;
-        this.modificationCount = 0;
-        elements = new Object[16];
+        this(16);
     }
 
     /**
@@ -44,9 +43,10 @@ public class ArrayIndexedCollection implements List {
     public ArrayIndexedCollection(int initialCapacity) {
         if(initialCapacity < 1)
             throw new IllegalArgumentException("Initial capacity can't be smaller then 1! Was sent "+ initialCapacity);
-        this.size = 0;
-        elements = new Object[initialCapacity];
+
+        elements = (T[]) new Object[initialCapacity];
         this.modificationCount = 0;
+        this.size = 0;
     }
 
     /**
@@ -54,7 +54,7 @@ public class ArrayIndexedCollection implements List {
      * @param other kolkecija koja se kopira
      * @throws NullPointerException ako je poslana null vrjednost umjesto kolekcije
      */
-    public ArrayIndexedCollection(Collection other) {
+    public ArrayIndexedCollection(Collection<? extends T> other) {
         this(other, 1);
     }
 
@@ -65,13 +65,9 @@ public class ArrayIndexedCollection implements List {
      * @param initialCapacity željena početna vrijednost polja
      * @throws NullPointerException ako je poslana null vrjednost umjesto kolekcije
      */
-    public ArrayIndexedCollection(Collection other, int initialCapacity) {
+    public ArrayIndexedCollection(Collection<? extends T> other, int initialCapacity) {
         this(other.size() > initialCapacity ? other.size() : initialCapacity);
-        other.forEach(new Processor() {
-            public void process(Object value) {
-                elements[size++] = value;
-            }
-        });
+        other.forEach(value ->  elements[size++] = value);
     }
 
     /**
@@ -85,7 +81,7 @@ public class ArrayIndexedCollection implements List {
      * Metoda za testiranje prave veličine polja
      * @return veličinu polja
      */
-    protected int arraySize() { return this.elements.length; }
+    int arraySize() { return this.elements.length; }
 
     /**
      * Provjerava da li je polje prazno, tj. da li je u njemu spremljen ijedan objekt.
@@ -111,7 +107,7 @@ public class ArrayIndexedCollection implements List {
      * @throws NullPointerException ako se pokuša spremiti null vrijednost
      */
     @Override
-    public void add(Object value) {
+    public <K extends T> void add(K value) {
         if(value == null)
             throw new NullPointerException();
         if(size == elements.length) doubleArray();
@@ -126,7 +122,7 @@ public class ArrayIndexedCollection implements List {
      * @return Objekt na zadanoj poziciji u polju
      * @throws IndexOutOfBoundsException ako se pokušava dohvatiti objekt na poziciji koja nije bila postavljena ili ako je pozicija neispravna
      */
-    public Object get(int index) {
+    public T get(int index) {
         if(index < 0 || index >= this.size)
             throw new IndexOutOfBoundsException("Received "+ index +", should be between 0 and "+ (this.elements.length-1));
         return this.elements[index];
@@ -141,7 +137,7 @@ public class ArrayIndexedCollection implements List {
      * @throws NullPointerException ako se pokuša spremiti null vrijednost
      * @throws IndexOutOfBoundsException ako je poslani pozicija umetanja nevažeća
      */
-    public void insert(Object value, int position) {
+    public <K extends T> void insert(K value, int position) {
         if(value == null)
             throw new NullPointerException();
         if(position < 0 || position > this.size)
@@ -163,7 +159,9 @@ public class ArrayIndexedCollection implements List {
      * @return indeks pozicije na kojem se nalazi prvi objekt koji je jednak poslani objektu, inače vraća -1 ako objekt nije pronađen
      */
     public int indexOf(Object value) {
-        if(value == null) return -1;
+        if(elements.length == 0 || value == null)
+            return -1;
+
         int index = -1;
         for(int i = 0; i < size; i++) {
             if(elements[i].equals(value)) {
@@ -182,7 +180,7 @@ public class ArrayIndexedCollection implements List {
      * @return  <code>true</code> ako se objekt nalazi u polju, inače <code>false</code>
      */
     @Override
-    public boolean contains(Object value) {                                 //jesam
+    public boolean contains(Object value) {
         return indexOf(value) != -1;
     }
 
@@ -221,7 +219,7 @@ public class ArrayIndexedCollection implements List {
      * @return novo polje sa objektima
      */
     @Override
-    public Object[] toArray() {                                             //jesam
+    public Object[] toArray() {
         return Arrays.copyOfRange(elements, 0, this.size);
     }
 
@@ -242,7 +240,7 @@ public class ArrayIndexedCollection implements List {
     private static class ArrayElementsGetter implements ElementsGetter {
 
         /**
-         * Zadnji element kojim smo prošli.
+         * Indeks zadnjeg element u polju kojim smo prošli.
          */
         private int current;
 
@@ -275,12 +273,20 @@ public class ArrayIndexedCollection implements List {
                 throw new ConcurrentModificationException("Can't iterate over and modify the collection at the same time!");
         }
 
+        /**
+         * Provjerava da li postoji još elemenata kojim nije pronađeno.
+         * @return <code>true</code> ako nismo prošli svim elementima, inače <code>false</code>
+         */
         @Override
         public boolean hasNextElement() {
             checkModifications();
             return current < collection.size;
         }
 
+        /**
+         * Vraća sljedeći element kolekcije kojim nismo prošli.
+         * @return sljedeći element kolekcije kojim nismo prošli
+         */
         @Override
         public Object getNextElement() {
             checkModifications();
